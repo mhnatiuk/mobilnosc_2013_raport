@@ -1,0 +1,111 @@
+
+Podstawowe statystyki badania "Mobilności studentów i absolwentów"
+============
+    ```{r set_knitr_chunk_options}
+opts_chunk$set(echo=FALSE,message=FALSE,results = "asis") # important for making sure the output will be well formatted.
+```
+
+```{r load_pander_methods}
+require(pander)
+replace.print.methods <- function(PKG_name = "pander") {
+    PKG_methods <- as.character(methods(PKG_name))
+    print_methods <- gsub(PKG_name, "print", PKG_methods)
+    for(i in seq_along(PKG_methods)) {
+        f <- eval(parse(text=paste(PKG_name,":::", PKG_methods[i], sep = ""))) # the new function to use for print
+        assign(print_methods[i], f, ".GlobalEnv")
+    }   
+}
+replace.print.methods()
+## The following might work with some tweaks:
+## print <- function (x, ...) UseMethod("pander")
+```
+Some text explaining the analysis we are doing
+```{r}
+library(xtable)
+setwd("~/Dokumenty/Badanie mobilność/dane finalne/")
+load(".RData")
+
+
+dane <- as.data.frame(lapply(dane[,1:ncol(dane)],FUN = sanitize_vec ))
+cb <- as.data.frame(lapply(cb[,1:ncol(cb)],FUN = sanitize_vec ))
+strshort <- function(x,len=5){
+    substr(x,1,len)
+}
+
+
+
+var_selection <- function(df){
+    vars <- c()
+    var_desc = cb[ cb$NAZWA == names(df)[i], ]
+    
+    for(i in 1:ncol(df)){
+        if( length(unique(df[[i]])) < 13 ){ # dodaj zmienna do listy
+            if(length(is.na(df[[i]])[is.na(df[[i]])==TRUE ] ) / length(df[[i]]) < 0.5 ){ # wiecej niz 50% wartosci to nie braki danych
+                vars <- c(vars,names(df)[i])
+            }
+        }
+    }
+    vars
+}
+vars <-  var_selection(dane)
+ctab <- function(tab, dec = 2, ...) {
+    tab <- as.table(tab)
+    ptab <- paste(round(prop.table(tab) * 100, dec), "%", sep = "")
+    res <- matrix(NA, nrow = nrow(tab) * 2, ncol = ncol(tab), byrow = TRUE)
+    oddr <- 1:nrow(tab) %% 2 == 1
+    evenr <- 1:nrow(tab) %% 2 == 0
+    res[oddr, ] <- tab
+    res[evenr, ] <- ptab
+    res <- as.table(res)
+    colnames(res) <- colnames(tab)
+    rownames(res) <- rep(rownames(tab), each = 2)
+    return(res)
+}  
+panderOptions('table.continues', 'Tabela ma dalszą część poniżej')
+panderOptions('table.caption.prefix','Tabela: ')
+panderOptions('table.continues.affix','(ciąg dalszy tabeli poniżej)')
+for(i in 1:length(vars) ){
+    
+    if(cb$SKALA[cb$NAZWA==vars[i]] == "ilorazowa"){
+        #hist(m)
+    }
+    myTab = table(dane[vars[i]],dnn=vars[i])
+    for(j in 1:length(myTab)){
+        if(nchar(names(myTab)[j]) > 20 ){
+            names(myTab)[j] = paste(substr(names(myTab)[j],1,20),"...")
+        }
+    }
+    #rws <- seq(1, (nrow(myTab)), by = 2)
+    #col <- rep("\\rowcolor[gray]{0.91}", length(rws))
+    mat <- cbind(as.matrix(myTab),as.matrix(prop.table(myTab)))
+    char <- paste(round(prop.table(myTab)*100,2), "%", sep="")
+    mat[,2] <- char
+    colnames(mat)<- c("Liczebność", "Częstość")
+   
+    
+    pandoc.table(mat,style = "grid",
+                 caption = paste(names(dane)[i],'-',cb$OPIS2[cb$NAZWA==vars[i]] ),
+                 split.cells=70)
+    
+    #pander(prop.table(myTab))
+    #if(length(myTab)>15){
+    #    print(xtable(myTab,caption = paste(strshort(cb$OPIS2[cb$NAZWA==vars[i]])) ), 
+    #         tabular.environment='longtable',floating=FALSE,
+    #        booktabs = TRUE, 
+    #       add.to.row = list(pos = as.list(rws), command = col),type="html")
+    
+    #}
+    #else{
+    # print(xtable(myTab,caption = paste(strshort(cb$OPIS2[cb$NAZWA==vars[i]])) ), 
+    #      booktabs = TRUE,tabular.environment='longtable', floating=FALSE,
+    #     add.to.row = list(pos = as.list(rws), command = col), type="html")
+    
+    #}
+    
+    
+}
+#summary(cars)# a summary table
+#fit <- lm(dist~speed, data = cars)
+#fit
+#plot(cars) # a plot
+```
